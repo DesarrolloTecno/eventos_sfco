@@ -1,0 +1,142 @@
+/* Estilos generales */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.App {
+    max-width: 1200px; /* Limitar el ancho máximo */
+    margin: 0 auto; /* Centrar el contenido */
+    padding: 20px;
+    text-align: center;
+}
+
+/* Estilo del contenedor del video */
+.video-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+video {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Círculos (check y cross) */
+.check-circle, .cross-circle {
+    width: 10vw; /* Usa un valor relativo para hacer que el tamaño sea flexible */
+    height: 10vw;
+    max-width: 80px; /* Tamaño máximo */
+    max-height: 80px; /* Tamaño máximo */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px auto;
+}
+
+.check-icon, .cross-icon {
+    color: white;
+    font-size: 4vw; /* El tamaño de la fuente también debe ser flexible */
+    max-font-size: 30px; /* Tamaño máximo para evitar que sea demasiado grande */
+}
+
+/* Botón de reinicio */
+.restart-button {
+    padding: 10px 20px;
+    font-size: 2vw; /* Escala con el tamaño de pantalla */
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+}
+
+    .restart-button:hover {
+        background-color: #0056b3;
+    }
+
+/* Mensajes de error */
+.error-message {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Estilos para pantallas pequeñas (Mobile-first) */
+@media screen and (max-width: 768px) {
+    .check-circle, .cross-circle {
+        width: 12vw;
+        height: 12vw;
+        max-width: 60px;
+        max-height: 60px;
+    }
+
+    .check-icon, .cross-icon {
+        font-size: 5vw;
+    }
+
+    .restart-button {
+        font-size: 3vw;
+        padding: 12px 25px;
+    }
+
+    .video-container {
+        flex-direction: column; /* Para que el video ocupe todo el ancho disponible */
+    }
+
+    .App {
+        padding: 15px;
+    }
+}
+
+/* Estilos para pantallas más grandes */
+@media screen and (min-width: 1200px) {
+    .check-circle, .cross-circle {
+        width: 50px;
+        height: 50px;
+        max-width: none;
+        max-height: none;
+    }
+
+    .check-icon, .cross-icon {
+        font-size: 30px;
+    }
+
+    .restart-button {
+        font-size: 16px;
+    }
+}
+
+.event-list {
+    text-align: center;
+    padding: 20px;
+}
+
+    .event-list ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .event-list li {
+        cursor: pointer;
+        padding: 10px;
+        margin: 5px 0;
+        background-color: #f0f0f0;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+        .event-list li:hover {
+            background-color: #d0d0d0;
+        }
+
+.error-message {
+    color: red;
+}
+
