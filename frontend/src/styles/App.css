@@ -1,0 +1,99 @@
+/* Estilos generales */
+body {
+    font-family: 'Roboto', Arial, sans-serif; /* Usa una tipografía moderna */
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9; /* Fondo claro para un diseño limpio */
+    color: #333;
+}
+
+.App {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Contenedor de la lista de eventos */
+.event-list {
+    background: #fff; /* Fondo blanco para destacar la lista */
+    border: 1px solid #e0e0e0; /* Bordes sutiles */
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra ligera para dar profundidad */
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 800px;
+    text-align: center;
+}
+
+    .event-list h1 {
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+        color: #007bff;
+    }
+
+    .event-list ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .event-list li {
+        cursor: pointer;
+        padding: 15px;
+        margin: 10px 0;
+        background-color: #f7f9fc; /* Fondo más claro */
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        font-size: 1.1rem;
+        color: #555;
+    }
+
+        .event-list li:hover {
+            background-color: #e3f2fd; /* Efecto hover con color suave */
+            transform: translateY(-3px); /* Animación de elevación */
+        }
+
+/* Mensajes de error */
+.error-message {
+    color: #d32f2f;
+    font-weight: bold;
+    margin-top: 10px;
+    background-color: #ffebee;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Botón de reinicio */
+.restart-button {
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-top: 15px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+    .restart-button:hover {
+        background-color: #0056b3;
+        transform: scale(1.05); /* Efecto de hover escalable */
+    }
+
+/* Responsivo */
+@media screen and (max-width: 768px) {
+    .event-list {
+        padding: 15px;
+    }
+
+        .event-list h1 {
+            font-size: 1.5rem;
+        }
+
+        .event-list li {
+            font-size: 1rem;
+            padding: 12px;
+        }
+}

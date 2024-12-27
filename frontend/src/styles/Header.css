@@ -1,0 +1,38 @@
+/* src/styles/Header.css */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #007bff;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-left h1 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.header-title {
+    color: white; /* Asegúrate de que el texto del enlace sea blanco */
+    text-decoration: none; /* Elimina el subrayado */
+}
+
+.header-right .login-button {
+    padding: 8px 15px;
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+    .header-right .login-button:hover {
+        background-color: #003f7f;
+    }

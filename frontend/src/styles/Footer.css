@@ -1,0 +1,8 @@
+.footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #f1f1f1;
+    position: static; /* Fijamos el footer en la parte inferior */
+    bottom: 0; /* Lo posicionamos al fondo */
+    left: 0; /* Aseguramos que esté alineado al borde izquierdo */
+}
