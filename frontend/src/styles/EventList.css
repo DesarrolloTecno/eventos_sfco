@@ -1,0 +1,39 @@
+/* Contenedor de la lista de eventos */
+.event-list {
+    background: #fff; /* Fondo blanco para destacar la lista */
+    border: 1px solid #e0e0e0; /* Bordes sutiles */
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra ligera para dar profundidad */
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 800px;
+    text-align: center;
+}
+
+    .event-list h1 {
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+        color: #007bff;
+    }
+
+    .event-list ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .event-list li {
+        cursor: pointer;
+        padding: 15px;
+        margin: 10px 0;
+        background-color: #f7f9fc; /* Fondo más claro */
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        font-size: 1.1rem;
+        color: #555;
+    }
+
+        .event-list li:hover {
+            background-color: #e3f2fd; /* Efecto hover con color suave */
+            transform: translateY(-3px); /* Animación de elevación */
+        }

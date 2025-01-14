@@ -1,17 +1,31 @@
 ﻿import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import EventList from './EventList';
-import Scanner from './Scanner';
-import Header from './Header'; 
-import Footer from './Footer'; 
-import '../styles/App.css';
+import ScannerTabs from './ScannerTabs';
+import Header from './Header';
+import Footer from './Footer';
+
 function App() {
+    const isLoggedIn = () => {
+        return !!localStorage.getItem('user'); // Ejemplo usando localStorage.
+    };
+
     return (
         <>
-            <Header/>
+            <Header />
             <Routes>
                 <Route path="/" element={<EventList />} />
-                <Route path="/scanner/:eventId" element={<Scanner />} />
+                <Route
+                    path="/scanner/:eventId"
+                    element={
+                        isLoggedIn() ? (
+                            <ScannerTabs /> // Aquí no pasas eventId como prop directamente
+                        ) : (
+                            <Navigate to="/login" />  // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route path="*" element={<Navigate to="/" />} />
             </Routes>
             <Footer />
         </>

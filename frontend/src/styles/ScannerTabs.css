@@ -1,0 +1,44 @@
+/* ScannerTabs.css */
+
+/* Contenedor de las pestañas */
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+    /* Estilo para cada botón de pestaña */
+    .tabs button {
+        font-size: 16px;
+        padding: 10px 20px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+        margin: 0 10px;
+    }
+
+        /* Pestaña activa */
+        .tabs button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+
+        /* Pestaña inactiva */
+        .tabs button:not(.active) {
+            background-color: #e0e0e0;
+            color: #666;
+        }
+
+/* Contenido de las pestañas */
+.tab-content {
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}

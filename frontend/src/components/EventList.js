@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../styles/App.css';
-
+import '../styles/EventList.css';
 
 function EventList() {
     const [events, setEvents] = useState([]);
@@ -23,6 +22,7 @@ function EventList() {
         fetchEvents();
     }, []);
 
+    // Manejador de evento para navegar al scanner
     const handleSelectEvent = (eventId) => {
         navigate(`/scanner/${eventId}`);
     };
