@@ -2,7 +2,9 @@
 import { useParams } from 'react-router-dom';
 import { BrowserMultiFormatReader } from '@zxing/library';
 import axios from 'axios';
-import '../styles/App.css';
+import { Button } from 'react-bootstrap'; // Importa el componente Button de react-bootstrap
+import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de bootstrap
+import '../styles/App.css'; // Mantenemos los estilos
 
 function Scanner() {
     const { eventId } = useParams();
@@ -11,8 +13,32 @@ function Scanner() {
     const [errorMessage, setErrorMessage] = useState('');
     const [userInfo, setUserInfo] = useState({ nombre: '', rol: '', color: '' });
     const [eventName, setEventName] = useState('');
-    const [isCameraVisible, setIsCameraVisible] = useState(true);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [isCameraVisible, setIsCameraVisible] = useState(true); // Controla la visibilidad de la cámara
+    const [isProcessing, setIsProcessing] = useState(false); // Estado para controlar si ya se está procesando
+    const [isEntry, setIsEntry] = useState(true); // Estado para determinar entrada o salida
+
+    // Variable para evitar solicitudes duplicadas
+    let isRequestInProgress = false;
+
+    const sendLogRequest = async (eventId, userId, estado) => {
+        if (isRequestInProgress) return; // Evitar enviar la solicitud si ya está en progreso
+        isRequestInProgress = true; // Marcar que la solicitud está en progreso
+
+        try {
+            const logResponse = await axios.post(`/api/log/${eventId}`, {
+                userId,
+                estado,
+            });
+
+            if (logResponse.data.message.includes('registro exitoso')) {
+                console.log('Registro realizado correctamente.');
+            }
+        } catch (error) {
+            console.error("Error al enviar el log: ", error.response.data);
+        } finally {
+            isRequestInProgress = false; // Restablecer el estado una vez que la solicitud termine
+        }
+    };
 
     useEffect(() => {
         const fetchEventName = async () => {
@@ -44,8 +70,11 @@ function Scanner() {
 
         const startScanning = async () => {
             try {
+                // Verifica si ya se está procesando
+                if (isProcessing) return;
+
                 await codeReader.decodeFromVideoDevice(null, videoElement, async (result, error) => {
-                    if (isProcessing) return;
+                    if (isProcessing) return; // Evita procesar múltiples veces
 
                     if (error) {
                         if (error.name !== 'NotFoundException') {
@@ -55,7 +84,8 @@ function Scanner() {
                     }
 
                     if (result) {
-                        setIsProcessing(true);
+                        setIsProcessing(true); // Inicia el procesamiento
+
                         const parsedData = parseData(result.getText());
                         setDecodedInfo(parsedData);
 
@@ -66,30 +96,35 @@ function Scanner() {
                         }
 
                         try {
-                            const response = await axios.post('/api/validate-dni', {
+                            const validateResponse = await axios.post(`/api/validate/${eventId}`, {
                                 dni: parsedData.numDocumento,
-                                eventId,
                             });
 
-                            if (response.data.match) {
+                            if (validateResponse.data.match) {
                                 setDocumentMatch(true);
+                                const { user } = validateResponse.data;
                                 setUserInfo({
-                                    nombre: response.data.user.usuario,
-                                    rol: response.data.user.rol,
-                                    color: response.data.user.color,
+                                    nombre: user.usuario,
+                                    rol: user.rol,
+                                    color: user.color,
                                 });
-                                stopCamera();
+
+                                // Enviar solicitud para registrar el log (entrada/salida)
+                                await sendLogRequest(eventId, user.id_usuario, isEntry ? 1 : 0);
+
                             } else {
                                 setDocumentMatch(false);
                                 setUserInfo({ nombre: '', rol: '', color: '' });
                             }
-
-                            setIsCameraVisible(false);
                         } catch (error) {
                             setErrorMessage('Error al conectar con el servidor.');
                         } finally {
-                            setIsProcessing(false);
+                            setIsProcessing(false); // Finaliza el procesamiento
                         }
+
+                        // Eliminar la cámara inmediatamente después de escanear
+                        setIsCameraVisible(false);
+                        codeReader.reset(); // Detenemos explícitamente el lector
                     }
                 });
             } catch (error) {
@@ -98,7 +133,7 @@ function Scanner() {
         };
 
         const stopCamera = () => {
-            codeReader.reset();
+            codeReader.reset(); // Aseguramos que el lector se detenga al desmontar el componente
         };
 
         if (isCameraVisible) {
@@ -108,14 +143,14 @@ function Scanner() {
         return () => {
             stopCamera();
         };
-    }, [eventId, isCameraVisible, isProcessing, parseData]);
+    }, [eventId, isCameraVisible, isProcessing, parseData, isEntry]);
 
     const handleRetry = () => {
         setDecodedInfo(null);
         setDocumentMatch(false);
         setErrorMessage('');
         setUserInfo({ nombre: '', rol: '', color: '' });
-        setIsCameraVisible(true);
+        setIsCameraVisible(true); // Reactivar la cámara para un nuevo escaneo
     };
 
     return (
@@ -126,8 +161,26 @@ function Scanner() {
                 minHeight: '100vh',
             }}
         >
-            <h1>{eventName ? `Evento: ${eventName}` : 'Cargando evento...'}</h1>
+            <div className="event-header" style={{ display: 'flex', alignItems: 'center' }}>
+                <h1>{eventName ? `Evento: ${eventName}` : 'Cargando evento...'}</h1>
 
+                <div className="action-selector" style={{ marginLeft: '20px' }}>
+                    <Button
+                        variant={isEntry ? 'primary' : 'secondary'}
+                        onClick={() => setIsEntry(true)}
+                    >
+                        Entrada
+                    </Button>
+                    <Button
+                        variant={!isEntry ? 'primary' : 'secondary'}
+                        onClick={() => setIsEntry(false)}
+                    >
+                        Salida
+                    </Button>
+                </div>
+            </div>
+
+            {/* Condicional para ocultar el div de la cámara si no se está escaneando */}
             {isCameraVisible && (
                 <div className="video-container">
                     <video id="video" className="video" />
@@ -140,6 +193,7 @@ function Scanner() {
                         <div className="document-info">
                             <p><strong>Nombre:</strong> {userInfo.nombre}</p>
                             <p><strong>Rol:</strong> {userInfo.rol}</p>
+                            <p><strong>Acción:</strong> {isEntry ? 'Entrada' : 'Salida'}</p>
                         </div>
                     ) : (
                         <div className="no-match-message">

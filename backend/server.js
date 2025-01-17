@@ -78,8 +78,8 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Ruta para validar el DNI y registrar la entrada/salida del invitado
-app.post('/api/scanner/:eventId', (req, res) => {
+// Ruta para validar el DNI de un usuario en un evento
+app.post('/api/validate/:eventId', (req, res) => {
     const { eventId } = req.params;
     const { dni } = req.body;
 
@@ -104,49 +104,93 @@ app.post('/api/scanner/:eventId', (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
-
-            const lastLogQuery = `
-                SELECT estado
-                FROM logs
-                WHERE id_usuario = ? AND id_evento = ?
-                ORDER BY id_logs DESC LIMIT 1
-            `;
-
-            db.query(lastLogQuery, [user.id_usuario, eventId], (logErr, logResults) => {
-                if (logErr) {
-                    console.error('Error al consultar último log:', logErr.message);
-                    return res.status(500).json({ message: 'Error al consultar el estado de acceso' });
-                }
-
-                let estado = 1; // Por defecto, entrada
-                if (logResults.length > 0 && logResults[0].estado === 1) {
-                    estado = 0; // Cambiar a salida
-                }
-
-                const insertLogQuery = `
-                    INSERT INTO logs (id_usuario, id_evento, fecha, estado)
-                    VALUES (?, ?, NOW(), ?)
-                `;
-
-                db.query(insertLogQuery, [user.id_usuario, eventId, estado], (insertErr) => {
-                    if (insertErr) {
-                        console.error('Error al insertar en logs:', insertErr.message);
-                        return res.status(500).json({ message: 'Error al guardar el log' });
-                    }
-
-                    const tipo = estado === 1 ? 'Entrada' : 'Salida';
-
-                    res.status(200).json({
-                        message: `Acceso ${tipo} registrado exitosamente.`,
-                    });
-                });
-            });
+            res.status(200).json({ match: true, user });
         } else {
             console.log(`Usuario con DNI ${dni} no encontrado para el evento ${eventId}`);
-            return res.status(404).json({ message: 'Usuario no encontrado para este evento' });
+            return res.status(404).json({ match: false, message: 'Usuario no encontrado para este evento' });
         }
     });
 });
+
+// Ruta para registrar entrada/salida
+// Variable para evitar solicitudes duplicadas
+let lastRequestTime = {};
+
+app.post('/api/log/:eventId', (req, res) => {
+    const { eventId } = req.params;
+    const { userId, estado } = req.body;
+
+    const currentTime = Date.now();
+    const userKey = `${userId}-${eventId}`;
+
+    // Verificar si ya hubo una solicitud reciente
+    if (lastRequestTime[userKey] && currentTime - lastRequestTime[userKey] < 1000) {
+        return res.status(400).json({ message: 'Solicitud duplicada detectada. Por favor espere antes de intentar de nuevo.' });
+    }
+
+    lastRequestTime[userKey] = currentTime;
+
+    if (!userId || !eventId || typeof estado === 'undefined') {
+        console.error('Faltan datos requeridos:', { eventId, userId, estado });
+        return res.status(400).json({
+            message: 'Usuario, evento y estado son requeridos',
+            data: { eventId, userId, estado }
+        });
+    }
+
+    // Consulta para verificar si ya existe un registro en la misma fecha y hora o dentro de ±1 minuto
+    const checkLogQuery = `
+        SELECT COUNT(*) AS count, MAX(fecha) AS last_fecha
+        FROM logs
+        WHERE id_usuario = ? AND id_evento = ? AND estado = ?
+    `;
+
+    db.query(checkLogQuery, [userId, eventId, estado], (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error('Error al verificar duplicados en logs:', checkErr.message);
+            return res.status(500).json({ message: 'Error al verificar duplicados', error: checkErr.message });
+        }
+
+        const lastFecha = checkResult[0].last_fecha;
+
+        if (checkResult[0].count > 0) {
+            const currentDate = new Date();
+            const lastDate = new Date(lastFecha);
+            const diffInMs = currentDate - lastDate; // Diferencia en milisegundos
+            const diffInMinutes = diffInMs / (1000 * 60); // Convertir a minutos
+
+            if (diffInMinutes <= 1) {
+                console.log(`Registro duplicado: El usuario ${userId} ya tiene un acceso registrado en la misma fecha y hora (±1 minuto).`);
+                return res.status(400).json({
+                    message: 'Ya existe un registro para este usuario en la misma fecha y hora dentro de ±1 minuto.',
+                    data: { eventId, userId, estado }
+                });
+            }
+        }
+
+        // Si no hay duplicados o la diferencia es mayor a 1 minuto, procedemos a insertar el nuevo registro
+        const insertLogQuery = `
+            INSERT INTO logs (id_usuario, id_evento, fecha, estado)
+            VALUES (?, ?, NOW(), ?)
+        `;
+
+        db.query(insertLogQuery, [userId, eventId, estado], (insertErr) => {
+            if (insertErr) {
+                console.error('Error al insertar en logs:', insertErr.message);
+                return res.status(500).json({ message: 'Error al guardar el log', error: insertErr.message });
+            }
+
+            const tipo = estado === 1 ? 'Entrada' : 'Salida'; // Determinar el tipo de registro
+            console.log(`Registro exitoso: ${tipo} para el usuario ${userId} en el evento ${eventId}`);
+
+            res.status(200).json({
+                message: `Acceso ${tipo} registrado exitosamente.`,
+                data: { eventId, userId, estado }
+            });
+        });
+    });
+});
+
 
 // Ruta para obtener todos los eventos
 app.get('/api/events', (req, res) => {

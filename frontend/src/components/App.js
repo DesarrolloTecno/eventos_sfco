@@ -18,11 +18,9 @@ function App() {
                 <Route
                     path="/scanner/:eventId"
                     element={
-                        isLoggedIn() ? (
-                            <ScannerTabs /> // Aquí no pasas eventId como prop directamente
-                        ) : (
-                            <Navigate to="/login" />  // Redirige al login si no está autenticado
-                        )
+
+                            <ScannerTabs />
+
                     }
                 />
                 <Route path="*" element={<Navigate to="/" />} />

@@ -163,3 +163,12 @@ body {
     }
 }
 
+.event-header {
+    display: flex;
+    align-items: center;
+    place-content: center;
+}
+
+.action-selector {
+    margin-left: 20px;
+}
