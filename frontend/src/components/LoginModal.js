@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import '../styles/LoginModal.css'; // Estilos para el modal
+import { Modal, Form, Button, Alert } from 'react-bootstrap';
+import 'bootstrap/dist/css/bootstrap.min.css'; // Asegúrate de tener los estilos de bootstrap cargados
 
 function LoginModal({ isOpen, closeModal, onLoginSuccess }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    if (!isOpen) return null; // Si no está abierto, no se renderiza el modal
+    // Si el modal no está abierto, no se renderiza
+    if (!isOpen) return null;
 
     // Manejar el envío del formulario
     const handleSubmit = async (e) => {
@@ -49,38 +51,42 @@ function LoginModal({ isOpen, closeModal, onLoginSuccess }) {
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal">
-                <button className="close-btn" onClick={handleCloseModal}>X</button>
-                <h2>Iniciar Sesion</h2>
-                <form className="login-form" onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="email">Correo electr&oacute;nico</label>
-                        <input
+        <Modal show={isOpen} onHide={handleCloseModal} centered>
+            <Modal.Header closeButton>
+                <Modal.Title>Iniciar Sesi&oacute;n</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form onSubmit={handleSubmit}>
+                    <Form.Group className="mb-3" controlId="email">
+                        <Form.Label>Correo Electr&oacute;nico</Form.Label>
+                        <Form.Control
                             type="email"
-                            id="email"
-                            name="email"
+                            placeholder="Ingrese su correo"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="password">Password</label>
-                        <input
+                    </Form.Group>
+
+                    <Form.Group className="mb-3" controlId="password">
+                        <Form.Label>Contrase&ntilde;a</Form.Label>
+                        <Form.Control
                             type="password"
-                            id="password"
-                            name="password"
+                            placeholder="Ingrese su contrase&ntilde;a"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
-                    </div>
-                    {error && <div className="error-message">{error}</div>}
-                    <button type="submit" className="submit-btn">Iniciar Sesi&oacute;n</button>
-                </form>
-            </div>
-        </div>
+                    </Form.Group>
+
+                    {error && <Alert variant="danger">{error}</Alert>}
+
+                    <Button variant="primary" type="submit" className="w-100">
+                        Iniciar Sesi&oacute;n
+                    </Button>
+                </Form>
+            </Modal.Body>
+        </Modal>
     );
 }
 

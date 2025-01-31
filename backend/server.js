@@ -123,11 +123,6 @@ app.post('/api/log/:eventId', (req, res) => {
     const currentTime = Date.now();
     const userKey = `${userId}-${eventId}`;
 
-    // Verificar si ya hubo una solicitud reciente
-    if (lastRequestTime[userKey] && currentTime - lastRequestTime[userKey] < 1000) {
-        return res.status(400).json({ message: 'Solicitud duplicada detectada. Por favor espere antes de intentar de nuevo.' });
-    }
-
     lastRequestTime[userKey] = currentTime;
 
     if (!userId || !eventId || typeof estado === 'undefined') {
@@ -162,7 +157,7 @@ app.post('/api/log/:eventId', (req, res) => {
             if (diffInMinutes <= 1) {
                 console.log(`Registro duplicado: El usuario ${userId} ya tiene un acceso registrado en la misma fecha y hora (±1 minuto).`);
                 return res.status(400).json({
-                    message: 'Ya existe un registro para este usuario en la misma fecha y hora dentro de ±1 minuto.',
+                    message: 'Ya existe un registro para este usuario en la misma fecha y hora dentro de 1 minuto. Por favor aguarde un minuto',
                     data: { eventId, userId, estado }
                 });
             }
@@ -227,36 +222,150 @@ app.get('/api/events/:id', (req, res) => {
     });
 });
 
-// Ruta para obtener los logs de un evento específico
 app.get('/api/events/:eventId/logs', (req, res) => {
-    const eventId = req.params.eventId;
+    const { eventId } = req.params;
+    const { date, estado, usuario } = req.query;
+
+    if (!eventId) {
+        return res.status(400).json({ message: 'ID de evento es requerido' });
+    }
+
+    let query = `
+        SELECT logs.id_logs, logs.fecha, logs.estado, usuario.nombre AS usuario
+        FROM logs
+        JOIN usuario ON logs.id_usuario = usuario.id_usuario
+        WHERE logs.id_evento = ?
+    `;
+
+    let queryParams = [eventId];
+
+    if (date) {
+        query += " AND DATE(logs.fecha) = ?";
+        queryParams.push(date);
+    }
+
+    if (estado) {
+        query += " AND logs.estado = ?";
+        queryParams.push(parseInt(estado, 10)); // Convertir a número
+    }
+
+    if (usuario) {
+        query += " AND usuario.nombre LIKE ?";
+        queryParams.push(`%${usuario}%`); // Búsqueda parcial
+    }
+
+    query += " ORDER BY logs.fecha DESC";
+
+    db.query(query, queryParams, (err, results) => {
+        if (err) {
+            console.error('Error al obtener los registros:', err.message);
+            return res.status(500).json({ message: 'Error en la base de datos' });
+        }
+
+        res.json(results);
+    });
+});
+
+// Ruta para obtener todos los usuarios de un evento
+app.get('/api/event/:eventId/users', (req, res) => {
+    const { eventId } = req.params;
 
     if (!eventId) {
         return res.status(400).json({ message: 'ID de evento es requerido' });
     }
 
     const query = `
-        SELECT logs.id_logs, logs.fecha, logs.estado, usuario.nombre AS usuario
-        FROM logs
-        JOIN usuario ON logs.id_usuario = usuario.id_usuario
-        WHERE logs.id_evento = ?
-        ORDER BY logs.fecha DESC
+        SELECT usuario.id_usuario, usuario.nombre, usuario.DNI, rol.nombre AS rol, rol.color
+        FROM usuario
+        JOIN usuario_evento ON usuario.id_usuario = usuario_evento.id_usuario
+        JOIN usuario_rol ON usuario_rol.id_usuario = usuario_evento.id_usuario
+        JOIN rol ON usuario_rol.id_rol = rol.id_rol
+        WHERE usuario_evento.id_evento = ?
     `;
 
     db.query(query, [eventId], (err, results) => {
         if (err) {
-            console.error('Error al obtener los registros:', err.message);
+            console.error('Error al obtener usuarios:', err.message);
             return res.status(500).json({ message: 'Error en la base de datos' });
         }
 
-        if (results.length === 0) {
-            // Si no hay registros, devolvemos una respuesta con código 200 y un arreglo vacío
-            return res.status(200).json([]);  // Retorna un arreglo vacío en lugar de un 404
-        }
-
-        res.json(results);  // Si hay registros, los devuelve normalmente
+        res.json(results);
     });
 });
+
+
+// Ruta para registrar entrada/salida
+app.post('/api/log/:eventId', (req, res) => {
+    const { eventId } = req.params;
+    const { userId, estado } = req.body;
+
+    const currentTime = Date.now();
+    const userKey = `${userId}-${eventId}`;
+
+    lastRequestTime[userKey] = currentTime;
+
+    if (!userId || !eventId || typeof estado === 'undefined') {
+        console.error('Faltan datos requeridos:', { eventId, userId, estado });
+        return res.status(400).json({
+            message: 'Usuario, evento y estado son requeridos',
+            data: { eventId, userId, estado }
+        });
+    }
+
+    // Verificar si ya existe un log para este usuario en el mismo evento
+    const checkLogQuery = `
+        SELECT COUNT(*) AS count, MAX(fecha) AS last_fecha
+        FROM logs
+        WHERE id_usuario = ? AND id_evento = ? AND estado = ?
+    `;
+
+    db.query(checkLogQuery, [userId, eventId, estado], (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error('Error al verificar duplicados en logs:', checkErr.message);
+            return res.status(500).json({ message: 'Error al verificar duplicados', error: checkErr.message });
+        }
+
+        const lastFecha = checkResult[0].last_fecha;
+
+        if (checkResult[0].count > 0) {
+            const currentDate = new Date();
+            const lastDate = new Date(lastFecha);
+            const diffInMs = currentDate - lastDate; // Diferencia en milisegundos
+            const diffInMinutes = diffInMs / (1000 * 60); // Convertir a minutos
+
+            if (diffInMinutes <= 1) {
+                console.log(`Registro duplicado: El usuario ${userId} ya tiene un acceso registrado en la misma fecha y hora (±1 minuto).`);
+                return res.status(400).json({
+                    message: 'Ya existe un registro para este usuario en la misma fecha y hora dentro de 1 minuto. Por favor aguarde un minuto',
+                    data: { eventId, userId, estado }
+                });
+            }
+        }
+
+        // Si no hay duplicados, insertar el nuevo log
+        const insertLogQuery = `
+            INSERT INTO logs (id_usuario, id_evento, fecha, estado)
+            VALUES (?, ?, NOW(), ?)
+        `;
+
+        db.query(insertLogQuery, [userId, eventId, estado], (insertErr) => {
+            if (insertErr) {
+                console.error('Error al insertar en logs:', insertErr.message);
+                return res.status(500).json({ message: 'Error al guardar el log', error: insertErr.message });
+            }
+
+            const tipo = estado === 1 ? 'Entrada' : 'Salida'; // Determinar tipo de registro
+            console.log(`Registro exitoso: ${tipo} para el usuario ${userId} en el evento ${eventId}`);
+
+            res.status(200).json({
+                message: `Acceso ${tipo} registrado exitosamente.`,
+                data: { eventId, userId, estado }
+            });
+        });
+    });
+});
+
+
 
 // Configuración para producción
 if (process.env.NODE_ENV === 'production') {

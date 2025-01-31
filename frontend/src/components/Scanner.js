@@ -1,10 +1,10 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { BrowserMultiFormatReader } from '@zxing/library';
 import axios from 'axios';
-import { Button } from 'react-bootstrap'; // Importa el componente Button de react-bootstrap
-import 'bootstrap/dist/css/bootstrap.min.css'; // Importa los estilos de bootstrap
-import '../styles/App.css'; // Mantenemos los estilos
+import { Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../styles/App.css';
 
 function Scanner() {
     const { eventId } = useParams();
@@ -13,30 +13,27 @@ function Scanner() {
     const [errorMessage, setErrorMessage] = useState('');
     const [userInfo, setUserInfo] = useState({ nombre: '', rol: '', color: '' });
     const [eventName, setEventName] = useState('');
-    const [isCameraVisible, setIsCameraVisible] = useState(true); // Controla la visibilidad de la cámara
-    const [isProcessing, setIsProcessing] = useState(false); // Estado para controlar si ya se está procesando
-    const [isEntry, setIsEntry] = useState(true); // Estado para determinar entrada o salida
+    const [isCameraVisible, setIsCameraVisible] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isEntry, setIsEntry] = useState(true);
 
-    // Variable para evitar solicitudes duplicadas
-    let isRequestInProgress = false;
+    const isRequestInProgress = useRef(false);
 
     const sendLogRequest = async (eventId, userId, estado) => {
-        if (isRequestInProgress) return; // Evitar enviar la solicitud si ya está en progreso
-        isRequestInProgress = true; // Marcar que la solicitud está en progreso
+        if (isRequestInProgress.current) return;
+        isRequestInProgress.current = true;
 
         try {
-            const logResponse = await axios.post(`/api/log/${eventId}`, {
-                userId,
-                estado,
-            });
-
-            if (logResponse.data.message.includes('registro exitoso')) {
+            const logResponse = await axios.post(`/api/log/${eventId}`, { userId, estado });
+            if (logResponse.data.message && logResponse.data.message.includes('registro exitoso')) {
                 console.log('Registro realizado correctamente.');
             }
         } catch (error) {
-            console.error("Error al enviar el log: ", error.response.data);
+            console.error("Error al enviar el log: ", error.response?.data || error);
+            // Mostrar el error de la respuesta en el estado errorMessage
+            setErrorMessage(error.response?.data?.message || 'Error al registrar la acción.');
         } finally {
-            isRequestInProgress = false; // Restablecer el estado una vez que la solicitud termine
+            isRequestInProgress.current = false;
         }
     };
 
@@ -47,6 +44,7 @@ function Scanner() {
                 setEventName(response.data.nombre);
             } catch (error) {
                 console.error('Error al obtener el nombre del evento:', error);
+                // Mostrar el error en pantalla
                 setErrorMessage('No se pudo cargar el nombre del evento.');
             }
         };
@@ -70,22 +68,22 @@ function Scanner() {
 
         const startScanning = async () => {
             try {
-                // Verifica si ya se está procesando
                 if (isProcessing) return;
 
                 await codeReader.decodeFromVideoDevice(null, videoElement, async (result, error) => {
-                    if (isProcessing) return; // Evita procesar múltiples veces
+                    if (isProcessing) return;
 
                     if (error) {
                         if (error.name !== 'NotFoundException') {
                             console.error('Error al leer el código:', error.message || error);
+                            // Mostrar error en pantalla
+                            setErrorMessage('Error al leer el código.');
                         }
                         return;
                     }
 
                     if (result) {
-                        setIsProcessing(true); // Inicia el procesamiento
-
+                        setIsProcessing(true);
                         const parsedData = parseData(result.getText());
                         setDecodedInfo(parsedData);
 
@@ -103,28 +101,24 @@ function Scanner() {
                             if (validateResponse.data.match) {
                                 setDocumentMatch(true);
                                 const { user } = validateResponse.data;
-                                setUserInfo({
-                                    nombre: user.usuario,
-                                    rol: user.rol,
-                                    color: user.color,
-                                });
+                                setUserInfo({ nombre: user.usuario, rol: user.rol, color: user.color });
 
-                                // Enviar solicitud para registrar el log (entrada/salida)
                                 await sendLogRequest(eventId, user.id_usuario, isEntry ? 1 : 0);
-
                             } else {
+                                // Solo muestra el mensaje de error si el DNI no coincide.
                                 setDocumentMatch(false);
                                 setUserInfo({ nombre: '', rol: '', color: '' });
+                                setErrorMessage('Documento no encontrado.');
                             }
                         } catch (error) {
+                            // Manejo del error al conectar con el servidor
                             setErrorMessage('Error al conectar con el servidor.');
                         } finally {
-                            setIsProcessing(false); // Finaliza el procesamiento
+                            setIsProcessing(false);
                         }
 
-                        // Eliminar la cámara inmediatamente después de escanear
                         setIsCameraVisible(false);
-                        codeReader.reset(); // Detenemos explícitamente el lector
+                        codeReader.reset();
                     }
                 });
             } catch (error) {
@@ -132,16 +126,12 @@ function Scanner() {
             }
         };
 
-        const stopCamera = () => {
-            codeReader.reset(); // Aseguramos que el lector se detenga al desmontar el componente
-        };
-
         if (isCameraVisible) {
             startScanning();
         }
 
         return () => {
-            stopCamera();
+            codeReader.reset();
         };
     }, [eventId, isCameraVisible, isProcessing, parseData, isEntry]);
 
@@ -150,63 +140,74 @@ function Scanner() {
         setDocumentMatch(false);
         setErrorMessage('');
         setUserInfo({ nombre: '', rol: '', color: '' });
-        setIsCameraVisible(true); // Reactivar la cámara para un nuevo escaneo
+        setIsCameraVisible(true);
     };
 
     return (
-        <div
-            style={{
-                backgroundColor: userInfo.color || '#ffffff',
-                color: userInfo.color ? '#ffffff' : '#000000',
-                minHeight: '100vh',
-            }}
-        >
-            <div className="event-header" style={{ display: 'flex', alignItems: 'center' }}>
-                <h1>{eventName ? `Evento: ${eventName}` : 'Cargando evento...'}</h1>
-
-                <div className="action-selector" style={{ marginLeft: '20px' }}>
-                    <Button
-                        variant={isEntry ? 'primary' : 'secondary'}
-                        onClick={() => setIsEntry(true)}
-                    >
+        <Container fluid className="app-container">
+            <Row className="justify-content-center text-center">
+                <Col xs={12} className="mb-3">
+                    <h2 className="app-title">
+                        {eventName ? `Evento: ${eventName}` : <Spinner animation="border" />}
+                    </h2>
+                </Col>
+                <Col xs={12} className="mb-2">
+                    <Button variant={isEntry ? 'primary' : 'outline-primary'} className="me-2" onClick={() => setIsEntry(true)}>
                         Entrada
                     </Button>
-                    <Button
-                        variant={!isEntry ? 'primary' : 'secondary'}
-                        onClick={() => setIsEntry(false)}
-                    >
+                    <Button variant={!isEntry ? 'danger' : 'outline-danger'} onClick={() => setIsEntry(false)}>
                         Salida
                     </Button>
-                </div>
-            </div>
+                </Col>
+            </Row>
 
-            {/* Condicional para ocultar el div de la cámara si no se está escaneando */}
             {isCameraVisible && (
-                <div className="video-container">
-                    <video id="video" className="video" />
-                </div>
+                <Row className="justify-content-center">
+                    <Col xs={12} md={6}>
+                        <div className="video-container">
+                            <video id="video" className="video" />
+                        </div>
+                    </Col>
+                </Row>
+            )}
+
+            {isProcessing && (
+                <Row className="justify-content-center mt-3">
+                    <Col xs={12} md={6}>
+                        <Spinner animation="grow" variant="primary" />
+                    </Col>
+                </Row>
             )}
 
             {decodedInfo && (
-                <div>
-                    {documentMatch ? (
-                        <div className="document-info">
-                            <p><strong>Nombre:</strong> {userInfo.nombre}</p>
-                            <p><strong>Rol:</strong> {userInfo.rol}</p>
-                            <p><strong>Acción:</strong> {isEntry ? 'Entrada' : 'Salida'}</p>
-                        </div>
-                    ) : (
-                        <div className="no-match-message">
-                            <p>Documento no encontrado.</p>
-                        </div>
-                    )}
-
-                    <button className="restart-button" onClick={handleRetry}>Escanear otro documento</button>
-                </div>
+                <Row className="justify-content-center mt-3">
+                    <Col xs={12} md={6}>
+                        <Card className="text-center">
+                            <Card.Body>
+                                {documentMatch ? (
+                                    <Alert variant="success">
+                                        <p><strong>Nombre:</strong> {userInfo.nombre}</p>
+                                        <p><strong>Rol:</strong> {userInfo.rol}</p>
+                                        <p><strong>Acción:</strong> {isEntry ? 'Entrada' : 'Salida'}</p>
+                                    </Alert>
+                                ) : (
+                                    <Alert variant="danger">Documento no encontrado.</Alert>
+                                )}
+                                <Button variant="warning" onClick={handleRetry}>Escanear otro documento</Button>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
             )}
 
-            {errorMessage && <p className="error-message">{errorMessage}</p>}
-        </div>
+            {errorMessage && (
+                <Row className="justify-content-center mt-3">
+                    <Col xs={12} md={6}>
+                        <Alert variant="danger">{errorMessage}</Alert>
+                    </Col>
+                </Row>
+            )}
+        </Container>
     );
 }
 
