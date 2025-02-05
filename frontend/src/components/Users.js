@@ -28,7 +28,7 @@ const Users = ({ eventId }) => {
         fetchUsers();
     }, [eventId]);
 
-    // Filtrar usuarios por el texto de búsqueda
+    // Filtrar usuarios por el texto de bÃºsqueda
     const handleSearch = (e) => {
         const query = e.target.value;
         setSearchQuery(query);
@@ -43,53 +43,54 @@ const Users = ({ eventId }) => {
         }
     };
 
-    // Función para manejar la entrada/salida
+    // FunciÃ³n para manejar la entrada/salida
     const handleLog = (userId, estado) => {
-        axios.post(`/api/log/${eventId}`, { userId, estado })
-            .then(response => {
-                if (response.data) {
-                    setSuccessMessage(response.data.message); // Mensaje de éxito
-                    setErrorMessage(''); // Limpiar mensaje de error si es exitoso
+      axios.post(`/api/log/${eventId}`, { userId, estado })
+        .then(response => {
+          if (response.data) {
+            setSuccessMessage(response.data.message); // Mensaje de Ã©xito
+            setErrorMessage(''); // Limpiar mensaje de error si es exitoso
 
-                    // Actualizar el estado del usuario en la lista
-                    const updatedUsers = users.map(user => {
-                        if (user.id_usuario === userId) {
-                            user.last_log = estado; // Actualizar el estado del usuario
-                            user.cantidad_ingresos = response.data.cantidad_ingresos; // Actualizar la cantidad de ingresos
-                        }
-                        return user;
-                    });
-
-                    setUsers(updatedUsers); // Actualizar la lista de usuarios
-
-                    // Limpiar el mensaje de éxito después de 5 segundos
-                    setTimeout(() => {
-                        setSuccessMessage('');
-                    }, 3000);
-                }
-            })
-            .catch(err => {
-                setErrorMessage(err.response?.data?.message || 'Error desconocido');
-                setSuccessMessage(''); // Limpiar mensaje de éxito si es error
-
-                // Limpiar el mensaje de error después de 5 segundos
-                setTimeout(() => {
-                    setErrorMessage('');
-                }, 3000);
+            // Actualizar el estado del usuario en la lista
+            const updatedUsers = users.map(user => {
+              if (user.id_usuario === userId) {
+                user.last_log = estado; // Actualizar el estado del usuario
+                user.cantidad_ingresos = response.data.cantidad_ingresos; // Actualizar la cantidad de ingresos
+              }
+              return user;
             });
+
+            setUsers(updatedUsers); // Actualizar la lista de usuarios
+            setFilteredUsers(updatedUsers); // TambiÃ©n actualizar la lista filtrada
+
+            // Limpiar el mensaje de Ã©xito despuÃ©s de 5 segundos
+            setTimeout(() => {
+              setSuccessMessage('');
+            }, 3000);
+          }
+        })
+        .catch(err => {
+          setErrorMessage(err.response?.data?.message || 'Error desconocido');
+          setSuccessMessage(''); // Limpiar mensaje de Ã©xito si es error
+
+          // Limpiar el mensaje de error despuÃ©s de 5 segundos
+          setTimeout(() => {
+            setErrorMessage('');
+          }, 3000);
+        });
     };
 
 
-    // Función para obtener el estado de cada usuario
+    // FunciÃ³n para obtener el estado de cada usuario
     const getUserStatus = (userId) => {
         const lastLog = users.find(user => user.id_usuario === userId)?.last_log;
 
-        // Si no hay último registro, se considera "desconocido"
+        // Si no hay Ãºltimo registro, se considera "desconocido"
         if (lastLog === undefined || lastLog === null) {
             return <FaQuestionCircle color="gray" title="Desconocido" />;
         }
 
-        // Verificar si el último estado es 'entrada' (1) o 'salida' (0)
+        // Verificar si el Ãºltimo estado es 'entrada' (1) o 'salida' (0)
         return lastLog === 1
             ? <FaDoorOpen color="green" title="Adentro" />
             : <FaDoorClosed color="red" title="Afuera" />;
@@ -107,7 +108,7 @@ const Users = ({ eventId }) => {
         <div>
             <h3>Lista de Usuarios</h3>
 
-            {/* Campo de búsqueda */}
+            {/* Campo de bÃºsqueda */}
             <Form.Control
                 type="text"
                 placeholder="Buscar usuario o rol..."
@@ -116,7 +117,7 @@ const Users = ({ eventId }) => {
                 className="mb-3"
             />
 
-            {/* Mostrar mensajes de éxito o error */}
+            {/* Mostrar mensajes de Ã©xito o error */}
             {successMessage && <Alert variant="success">{successMessage}</Alert>}
             {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
 
@@ -127,7 +128,7 @@ const Users = ({ eventId }) => {
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Cantidad de Ingresos</th>
-                        <th>Acción</th>
+                        <th>Acci&oacute;n</th>
                     </tr>
                 </thead>
                 <tbody>

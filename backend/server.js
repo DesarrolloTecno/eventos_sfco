@@ -216,8 +216,8 @@ app.post('/api/log/:eventId', (req, res) => {
 
     function insertLog() {
         const insertLogQuery = `
-            INSERT INTO logs (id_usuario, id_evento, fecha, estado)
-            VALUES (?, ?, NOW(), ?)`;
+        INSERT INTO logs (id_usuario, id_evento, fecha, estado)
+        VALUES (?, ?, NOW(), ?)`;
 
         db.query(insertLogQuery, [userId, eventId, estado], (insertErr) => {
             if (insertErr) {
@@ -225,8 +225,24 @@ app.post('/api/log/:eventId', (req, res) => {
                 return res.status(500).json({ message: 'Error al guardar el log' });
             }
 
-            res.status(200).json({
-                message: `Acceso ${estado === 1 ? 'Entrada' : 'Salida'} registrado exitosamente.`,
+            // Obtener la cantidad actualizada de ingresos
+            const countIngresosQuery = `
+            SELECT COUNT(*) AS cantidad_ingresos 
+            FROM logs 
+            WHERE id_usuario = ? AND id_evento = ? AND estado = 1`;
+
+            db.query(countIngresosQuery, [userId, eventId], (countErr, countResult) => {
+                if (countErr) {
+                    console.error('Error al obtener la cantidad de ingresos:', countErr);
+                    return res.status(500).json({ message: 'Error al obtener la cantidad de ingresos' });
+                }
+
+                const cantidadIngresos = countResult[0].cantidad_ingresos;
+
+                res.status(200).json({
+                    message: `Acceso ${estado === 1 ? 'Entrada' : 'Salida'} registrado exitosamente.`,
+                    cantidad_ingresos: cantidadIngresos, // Enviar la cantidad actualizada
+                });
             });
         });
     }
@@ -247,6 +263,7 @@ app.get('/api/events/:eventId/logs', (req, res) => {
         JOIN usuario_rol ON usuario.id_usuario = usuario_rol.id_usuario
         JOIN rol ON usuario_rol.id_rol = rol.id_rol
         WHERE logs.id_evento = ?
+        ORDER BY fecha DESC
     `;
 
     // Crear filtros dinámicos
