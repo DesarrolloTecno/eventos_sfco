@@ -4,17 +4,19 @@ import { Table, Spinner, Alert, Container, Form, Row, Col, Button, Pagination } 
 
 const Logs = ({ eventId }) => {
     const [logs, setLogs] = useState([]);
+    const [allRoles, setAllRoles] = useState([]); // Guardamos todos los roles
+    const [roles, setRoles] = useState([]); // Roles disponibles después de aplicar filtros
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [filters, setFilters] = useState({
         date: '',
         estado: '',
         usuario: '',
+        rol: '',
     });
-    const [currentPage, setCurrentPage] = useState(1); // Página actual
-    const [logsPerPage] = useState(50); // Registros por página
+    const [currentPage, setCurrentPage] = useState(1);
+    const [logsPerPage] = useState(50);  // Se mantiene constante, si quieres hacerlo ajustable, conviértelo en estado
 
-    // Función para formatear la fecha
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleString('es-ES', {
@@ -34,16 +36,21 @@ const Logs = ({ eventId }) => {
         if (filters.date) queryParams.push(`date=${filters.date}`);
         if (filters.estado) queryParams.push(`estado=${filters.estado}`);
         if (filters.usuario) queryParams.push(`usuario=${filters.usuario}`);
+        if (filters.rol) queryParams.push(`rol=${filters.rol}`);
 
         const queryString = queryParams.length ? `?${queryParams.join('&')}` : '';
 
         axios.get(`http://localhost:5000/api/events/${eventId}/logs${queryString}`)
             .then(response => {
                 if (response.data.length === 0) {
-                    setError('No se encontraron registros para este evento con los filtros aplicados.');
+                    setError('No se encontraron registros con los filtros aplicados.');
                     setLogs([]);
                 } else {
                     setLogs(response.data);
+
+                    // Extraer roles únicos de todos los logs, no solo de los filtrados
+                    const uniqueRoles = [...new Set(response.data.map(log => log.nombre))];
+                    setRoles(uniqueRoles);
                 }
             })
             .catch(err => {
@@ -54,31 +61,39 @@ const Logs = ({ eventId }) => {
             .finally(() => setLoading(false));
     };
 
-    // Llamar a fetchLogs cuando cambien los filtros o el evento
+    const fetchAllRoles = () => {
+        axios.get(`http://localhost:5000/api/roles`)  // Asegúrate de tener un endpoint para obtener todos los roles
+            .then(response => {
+                setAllRoles(response.data);
+                setRoles(response.data); // Al principio, mostramos todos los roles
+            })
+            .catch(err => console.error('Error al obtener roles:', err));
+    };
+
     useEffect(() => {
         if (eventId) {
             fetchLogs();
+            fetchAllRoles(); // Cargar todos los roles al principio
         } else {
             setError('Evento no válido');
             setLoading(false);
         }
     }, [filters, eventId]);
 
-    // Función para limpiar los filtros correctamente
     const clearFilters = () => {
         setFilters({
             date: '',
             estado: '',
             usuario: '',
+            rol: '',
         });
+        setRoles(allRoles); // Restaurar todos los roles cuando se limpian los filtros
     };
 
-    // Determina los logs que deben mostrarse en la página actual
     const indexOfLastLog = currentPage * logsPerPage;
     const indexOfFirstLog = indexOfLastLog - logsPerPage;
     const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
 
-    // Paginación
     const totalPages = Math.ceil(logs.length / logsPerPage);
 
     const handlePageChange = (pageNumber) => {
@@ -89,7 +104,6 @@ const Logs = ({ eventId }) => {
         <Container className="mt-3">
             <h2 className="text-center">📜 Registros</h2>
 
-            {/* Filtros */}
             <Form className="mb-3">
                 <Row className="align-items-end">
                     <Col md={3}>
@@ -102,7 +116,7 @@ const Logs = ({ eventId }) => {
                             />
                         </Form.Group>
                     </Col>
-                    <Col md={3}>
+                    <Col md={2}>
                         <Form.Group>
                             <Form.Label>Estado</Form.Label>
                             <Form.Select
@@ -112,6 +126,24 @@ const Logs = ({ eventId }) => {
                                 <option value="">Todos</option>
                                 <option value="1">✅ Ingreso</option>
                                 <option value="0">🚪 Egreso</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                    <Col md={2}>
+                        <Form.Group>
+                            <Form.Label>Rol</Form.Label>
+                            <Form.Select
+                                value={filters.rol}
+                                onChange={(e) => setFilters({ ...filters, rol: e.target.value })}
+                            >
+                                <option value="">Todos</option>
+                                {roles.length > 0 ? (
+                                    roles.map((rol, index) => (
+                                        <option key={index} value={rol}>{rol}</option>
+                                    ))
+                                ) : (
+                                    <option>No roles disponibles</option>
+                                )}
                             </Form.Select>
                         </Form.Group>
                     </Col>
@@ -126,7 +158,7 @@ const Logs = ({ eventId }) => {
                             />
                         </Form.Group>
                     </Col>
-                    <Col md={3} className="d-flex gap-2">
+                    <Col md={2} className="d-flex gap-2">
                         <Button onClick={fetchLogs} className="w-50">Filtrar</Button>
                         <Button variant="secondary" onClick={clearFilters} className="w-50">Limpiar</Button>
                     </Col>
@@ -146,6 +178,7 @@ const Logs = ({ eventId }) => {
                                 <th>Fecha</th>
                                 <th>Estado</th>
                                 <th>Usuario</th>
+                                <th>Rol</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -155,12 +188,12 @@ const Logs = ({ eventId }) => {
                                     <td>{formatDate(log.fecha)}</td>
                                     <td>{log.estado === 1 ? "✅ Ingreso" : "🚪 Egreso"}</td>
                                     <td>{log.usuario}</td>
+                                    <td>{log.nombre}</td> {/* Aquí se muestra el rol */}
                                 </tr>
                             ))}
                         </tbody>
                     </Table>
 
-                    {/* Paginación */}
                     <Pagination>
                         <Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
                         {[...Array(totalPages)].map((_, index) => (

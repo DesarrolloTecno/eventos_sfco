@@ -30,7 +30,6 @@ function Scanner() {
             }
         } catch (error) {
             console.error("Error al enviar el log: ", error.response?.data || error);
-            // Mostrar el error de la respuesta en el estado errorMessage
             setErrorMessage(error.response?.data?.message || 'Error al registrar la acción.');
         } finally {
             isRequestInProgress.current = false;
@@ -44,7 +43,6 @@ function Scanner() {
                 setEventName(response.data.nombre);
             } catch (error) {
                 console.error('Error al obtener el nombre del evento:', error);
-                // Mostrar el error en pantalla
                 setErrorMessage('No se pudo cargar el nombre del evento.');
             }
         };
@@ -63,20 +61,21 @@ function Scanner() {
     }, []);
 
     useEffect(() => {
+        if (!isCameraVisible) return;
+
         const codeReader = new BrowserMultiFormatReader();
         const videoElement = document.getElementById('video');
 
         const startScanning = async () => {
             try {
-                if (isProcessing) return;
+                if (isProcessing || !isCameraVisible) return;
 
                 await codeReader.decodeFromVideoDevice(null, videoElement, async (result, error) => {
-                    if (isProcessing) return;
+                    if (isProcessing || !isCameraVisible) return;
 
                     if (error) {
                         if (error.name !== 'NotFoundException') {
                             console.error('Error al leer el código:', error.message || error);
-                            // Mostrar error en pantalla
                             setErrorMessage('Error al leer el código.');
                         }
                         return;
@@ -105,13 +104,11 @@ function Scanner() {
 
                                 await sendLogRequest(eventId, user.id_usuario, isEntry ? 1 : 0);
                             } else {
-                                // Solo muestra el mensaje de error si el DNI no coincide.
                                 setDocumentMatch(false);
                                 setUserInfo({ nombre: '', rol: '', color: '' });
                                 setErrorMessage('Documento no encontrado.');
                             }
                         } catch (error) {
-                            // Manejo del error al conectar con el servidor
                             setErrorMessage('Error al conectar con el servidor.');
                         } finally {
                             setIsProcessing(false);
@@ -126,9 +123,7 @@ function Scanner() {
             }
         };
 
-        if (isCameraVisible) {
-            startScanning();
-        }
+        startScanning();
 
         return () => {
             codeReader.reset();
@@ -140,7 +135,9 @@ function Scanner() {
         setDocumentMatch(false);
         setErrorMessage('');
         setUserInfo({ nombre: '', rol: '', color: '' });
-        setIsCameraVisible(true);
+
+        setIsCameraVisible(false);
+        setTimeout(() => setIsCameraVisible(true), 100);
     };
 
     return (
@@ -152,10 +149,28 @@ function Scanner() {
                     </h2>
                 </Col>
                 <Col xs={12} className="mb-2">
-                    <Button variant={isEntry ? 'primary' : 'outline-primary'} className="me-2" onClick={() => setIsEntry(true)}>
+                    <Button
+                        variant={isEntry ? 'primary' : 'outline-primary'}
+                        className="me-2"
+                        onClick={() => {
+                            if (!isEntry) {
+                                setIsEntry(true);
+                                handleRetry();
+                            }
+                        }}
+                    >
                         Entrada
                     </Button>
-                    <Button variant={!isEntry ? 'danger' : 'outline-danger'} onClick={() => setIsEntry(false)}>
+
+                    <Button
+                        variant={!isEntry ? 'danger' : 'outline-danger'}
+                        onClick={() => {
+                            if (isEntry) {
+                                setIsEntry(false);
+                                handleRetry();
+                            }
+                        }}
+                    >
                         Salida
                     </Button>
                 </Col>
