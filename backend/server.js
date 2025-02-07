@@ -15,7 +15,7 @@ const corsOptions = {
     allowedHeaders: ['Content-Type'],
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 
 // Configuración de la conexión a MySQL
