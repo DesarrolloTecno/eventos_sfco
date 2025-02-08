@@ -94,7 +94,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
 
   const sendLogRequest = async (eventId, userId, estado) => {
     try {
-      return await axios.post(`/api/log/${eventId}`, { userId, estado });
+      return await axios.post(`http://localhost:5000/api/log/${eventId}`, { userId, estado });
     } catch (error) {
       return error.response;
     }

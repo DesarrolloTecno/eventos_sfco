@@ -20,9 +20,9 @@ app.use(express.json());
 
 // Configuración de la conexión a MySQL
 const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'Eventos_sanfco',
+    host: process.env.DB_HOST || '35.239.110.211',
+    user: process.env.DB_USER || 'eventos',
+    password: process.env.DB_PASSWORD || '2024Eventos',
     database: process.env.DB_NAME || 'eventos',
 });
 
