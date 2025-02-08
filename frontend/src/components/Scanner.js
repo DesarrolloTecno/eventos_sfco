@@ -17,8 +17,8 @@ function Scanner() {
 
   return (
     <Container fluid className="app-container">
-      <Tabs defaultActiveKey="camera" id="scanner-tabs">
-        <Tab eventKey="camera" title="Escanear Cámara">
+      <Tabs defaultActiveKey="input" id="scanner-tabs">
+{/*         <Tab eventKey="camera" title="Escanear Cámara">
           <ScannerCamera
             eventId={eventId}
             isEntry={isEntry}
@@ -28,7 +28,7 @@ function Scanner() {
             setErrorMessage={setErrorMessage}
             setSuccessMessage={setSuccessMessage}
           />
-        </Tab>
+        </Tab> */}
         <Tab eventKey="input" title="Escanear desde texto">
           <ScannerInput
             eventId={eventId}
