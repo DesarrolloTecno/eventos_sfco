@@ -12,7 +12,7 @@ const ScannerTabs = () => {
   const [logsKey, setLogsKey] = useState(0); // 🔄 Estado para forzar la recarga de Logs
   const [scannerKey, setScannerKey] = useState(0); // 🔄 Estado para forzar la recarga del scanner
   const [usersKey, setUsersKey] = useState(0); // 🔄 Estado para forzar la recarga de usuarios
-
+  const [checked, setChecked] = useState(0);
   const handleSelect = useCallback((key) => {
     setActiveTab(key);
 
@@ -24,6 +24,7 @@ const ScannerTabs = () => {
     } else if (key === 'users') {
       setUsersKey(prevKey => prevKey + 1);
     }
+    
   }, []);
 
   return (
@@ -49,7 +50,7 @@ const ScannerTabs = () => {
           <Col>
             <Tab.Content>
               <Tab.Pane eventKey="scanner" key={`scanner-${scannerKey}`}>
-                <Scanner eventId={eventId} />
+                <Scanner eventId={eventId} checked={checked} setChecked= {setChecked}/>
               </Tab.Pane>
               <Tab.Pane eventKey="logs" key={`logs-${logsKey}`}>
                 <Logs eventId={eventId} />

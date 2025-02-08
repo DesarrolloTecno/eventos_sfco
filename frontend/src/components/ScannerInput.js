@@ -2,12 +2,23 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Form, Row, Col, Table } from 'react-bootstrap';
 import axios from 'axios';
 import { debounce } from 'lodash';
+import Switch from './Switch';
+import Input from './Input';
 
-function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo, setUserInfo, setErrorMessage, setSuccessMessage }) {
+
+function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo, setUserInfo, setErrorMessage, setSuccessMessage, checked, setChecked,setUserId ,userId,sendLogRequest}) {
   const [inputData, setInputData] = useState('');
   const [requests, setRequests] = useState([]);
   const [isError, setIsError] = useState(false); // Estado para manejar el error
   const inputRef = useRef(null);
+  setChecked(checked)
+
+
+
+
+
+
+
 
   const validateDNI = async (dni) => {
     try {
@@ -29,10 +40,11 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
         setSuccessMessage(`¡Ingreso/Salida Registrado Exitosamente! \nNombre: ${user.usuario} \nRol: ${user.rol}`);
 
         // Determinar el estado según el interruptor de entrada/salida
-        const estado = isEntry ? 1 : 0; // Aquí validamos el estado del interruptor
+        // let estado = isEntry ? 1 : 0; // Aquí validamos el estado del interruptor
 
         // Registrar log de ingreso/salida con el estado correcto
-        logResponse = await sendLogRequest(eventId, user.id_usuario, estado);
+        setUserId = user.id_usuario
+        logResponse = await sendLogRequest(eventId, userId);
         logMessage = logResponse?.data?.message || '';
       } else {
         setErrorMessage(responseData.message);
@@ -41,7 +53,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
       }
 
       setRequests(prevRequests => [
-        ...prevRequests, 
+        ...prevRequests,
         { dni, response: responseData, logResponse, logMessage }
       ]);
 
@@ -53,7 +65,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
       setErrorMessage(errorMsg);
       setIsError(true); // Set error state
       setRequests(prevRequests => [
-        ...prevRequests, 
+        ...prevRequests,
         { dni, response: { error: errorMsg } }
       ]);
 
@@ -92,35 +104,48 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
     };
   };
 
-  const sendLogRequest = async (eventId, userId, estado) => {
-    try {
-      return await axios.post(`/api/log/${eventId}`, { userId, estado });
-    } catch (error) {
-      return error.response;
-    }
-  };
+  // const sendLogRequest = async (eventId, userId) => {
+  //   try {
+  //     return await axios.post(`/api/log/${eventId}`, { userId, checked });
+  //   } catch (error) {
+  //     return error.response;
+  //   }
+  // };
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
+
+  // Cambiar estado isEntry cuando el switch cambia
+  // const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   // Aquí se actualiza el estado de "isEntry"
+  //   if (e.target.checked) {
+  //     setChecked(true)
+  //   } else {
+  //     setChecked(false)
+  //   }
+  //   handleToggleEntryExit(e.target.checked)
+
+
+  // };
+
   return (
     <>
       <Row className="justify-content-center my-3">
-        <Col xs={12} md={6}>
+        <Switch checked={checked} setChecked={setChecked}></Switch>
+        {/* <Col xs={12} md={6}>
           <Form className="d-flex align-items-center justify-content-end">
-            <Form.Check
-              type="checkbox"
-              id="entry-exit-checkbox"
-              label={isEntry ? 'Entrada' : 'Salida'}
-              checked={isEntry}
-              onChange={(e) => handleToggleEntryExit(e.target.checked)}
-              className="me-2"
+            <Form.Switch
+              id="entry-exit-switch"
+              label={isEntry === 1 ? 'Entrada' : 'Salida'}
+              // checked={Entry === 1? true: false} // El estado `isEntry` controla el switch
+              onChange={switch()} // Cambia el estado `isEntry` al marcar/desmarcar
               style={{ fontSize: '1.5rem', transform: 'scale(1.2)' }}
             />
           </Form>
-        </Col>
-
+        </Col> */}
+{/* 
         <Col xs={12} md={6}>
           <Form.Control
             type="text"
@@ -129,7 +154,8 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
             placeholder="Escanea el código aquí"
             ref={inputRef}
           />
-        </Col>
+        </Col> */}
+        <Input inputData={inputData} handleInputChange={handleInputChange}inputRef={inputRef} ></Input>
       </Row>
 
       <Row className="mt-4">
@@ -183,8 +209,8 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
                         backgroundColor: isLogSuccess
                           ? 'green'
                           : isLogError
-                          ? 'red'
-                          : '',
+                            ? 'red'
+                            : '',
                         color: 'white',
                         fontWeight: 'bold',
                       }}
@@ -192,8 +218,8 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
                       {isLogSuccess
                         ? 'Ingresa'
                         : isLogError
-                        ? logMessage || 'Error al registrar acción'
-                        : ''}
+                          ? logMessage || 'Error al registrar acción'
+                          : ''}
                     </td>
                   </tr>
                 );

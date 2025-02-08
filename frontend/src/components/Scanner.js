@@ -2,17 +2,37 @@ import React, { useState } from 'react';
 import { Container, Row, Col, Tabs, Tab } from 'react-bootstrap';
 import ScannerCamera from './ScannerCamera';
 import ScannerInput from './ScannerInput';
+import axios from 'axios';
 
-function Scanner() {
+
+function Scanner({checked, setChecked}) {
   const [eventId] = useState(1);  // Asume que tienes un eventId
-  const [isEntry, setIsEntry] = useState(true);
   const [decodedInfo, setDecodedInfo] = useState(null);
   const [userInfo, setUserInfo] = useState({ nombre: '', rol: '', color: '' });
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isEntry, setIsEntry] = useState('');
+  const [userId, setUserId]=useState("")
 
-  const handleToggleEntryExit = (checked) => {
-    setIsEntry(checked);
+  
+  const sendLogRequest = async (eventId, userId) => {
+    try {
+      return await axios.post(`/api/log/${eventId}`, { userId, checked });
+    } catch (error) {
+      return error.response;
+    }
+  };
+
+
+
+
+  const handleToggleEntryExit = (value) => {
+    // if(value){
+    //   setTrue()
+    // }else{
+    //   setFalse()
+    // }
+
   };
 
   return (
@@ -38,7 +58,13 @@ function Scanner() {
             setUserInfo={setUserInfo}
             setErrorMessage={setErrorMessage}
             setSuccessMessage={setSuccessMessage}
+            checked={checked}
+            setChecked={setChecked}
+            setUserId={setUserId}
+            userId= {userId}
+            sendLogRequest={sendLogRequest}
           />
+
         </Tab>
       </Tabs>
     </Container>
