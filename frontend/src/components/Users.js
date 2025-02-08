@@ -16,7 +16,7 @@ const Users = ({ eventId, refreshUsers }) => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`/api/event/${eventId}/users`);
+        const response = await axios.get(`http://localhost:5000/api/event/${eventId}/users`);
         setUsers(response.data);
         setFilteredUsers(response.data);
       } catch (error) {
