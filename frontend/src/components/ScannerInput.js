@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Form, Row, Col, Table } from 'react-bootstrap';
 import axios from 'axios';
 import { debounce } from 'lodash';
+import EntryExitToggle from './EntryExitToggle'; 
 
-function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo, setUserInfo, setErrorMessage, setSuccessMessage }) {
+function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
   const [inputData, setInputData] = useState('');
   const [requests, setRequests] = useState([]);
-  const [isError, setIsError] = useState(false); // Estado para manejar el error
+  const [isError, setIsError] = useState(false);
   const inputRef = useRef(null);
 
-  const validateDNI = async (dni) => {
+  const validateDNI = async (dni, apellido, nombre) => {
     try {
       const validateResponse = await axios.post(`http://localhost:5000/api/validate/${eventId}`, { dni });
       const responseData = validateResponse.data;
@@ -18,51 +19,31 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
       let logMessage = '';
 
       if (responseData.match) {
-        // Usuario encontrado, registrar en la base de logs
         const user = responseData.user;
-        setUserInfo({
-          nombre: user.usuario,
-          rol: user.rol,
-          color: user.color,
-        });
 
-        setSuccessMessage(`¡Ingreso/Salida Registrado Exitosamente! \nNombre: ${user.usuario} \nRol: ${user.rol}`);
+        const estado = isEntry ? 1 : 0; // Aquí aseguramos que cuando el checkbox está desmarcado, envía 0.
 
-        // Determinar el estado según el interruptor de entrada/salida
-        const estado = isEntry ? 1 : 0; // Aquí validamos el estado del interruptor
-
-        // Registrar log de ingreso/salida con el estado correcto
         logResponse = await sendLogRequest(eventId, user.id_usuario, estado);
         logMessage = logResponse?.data?.message || '';
-      } else {
-        setErrorMessage(responseData.message);
-        setIsError(true); // Set error state
-        alert(responseData.message); // Show alert with the error message
       }
 
       setRequests(prevRequests => [
-        ...prevRequests, 
-        { dni, response: responseData, logResponse, logMessage }
+        ...prevRequests,
+        { dni, apellido, nombre, response: responseData, logResponse, logMessage }
       ]);
 
-      // Limpiar el input después de procesar la respuesta del log
       setInputData('');
-
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Error al conectar con el servidor.';
-      setErrorMessage(errorMsg);
-      setIsError(true); // Set error state
       setRequests(prevRequests => [
-        ...prevRequests, 
-        { dni, response: { error: errorMsg } }
+        ...prevRequests,
+        { dni, apellido, nombre, response: { error: 'Error al conectar con el servidor.' } }
       ]);
 
-      // Limpiar el input en caso de error
       setInputData('');
     }
   };
 
-  const debouncedValidateDNI = useCallback(debounce(validateDNI, 500), []);
+  const debouncedValidateDNI = useCallback(debounce(validateDNI, 500), [isEntry]); // Se asegura de usar el valor actual
 
   const handleInputChange = (e) => {
     const input = e.target.value;
@@ -71,13 +52,12 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
     if (input.length > 0) {
       try {
         const parsedData = parseData(input);
-        setDecodedInfo(parsedData);
 
         if (!parsedData.numDocumento) return;
 
-        debouncedValidateDNI(parsedData.numDocumento);
+        debouncedValidateDNI(parsedData.numDocumento, parsedData.apellido, parsedData.nombre);
       } catch (error) {
-        setErrorMessage('Error al procesar los datos.');
+        console.error('Error al procesar los datos.', error);
       }
     }
   };
@@ -108,17 +88,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
     <>
       <Row className="justify-content-center my-3">
         <Col xs={12} md={6}>
-          <Form className="d-flex align-items-center justify-content-end">
-            <Form.Check
-              type="checkbox"
-              id="entry-exit-checkbox"
-              label={isEntry ? 'Entrada' : 'Salida'}
-              checked={isEntry}
-              onChange={(e) => handleToggleEntryExit(e.target.checked)}
-              className="me-2"
-              style={{ fontSize: '1.5rem', transform: 'scale(1.2)' }}
-            />
-          </Form>
+          <EntryExitToggle isEntry={isEntry} handleToggleEntryExit={handleToggleEntryExit} />
         </Col>
 
         <Col xs={12} md={6}>
@@ -134,20 +104,13 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
 
       <Row className="mt-4">
         <Col>
-          <Table
-            striped
-            bordered
-            hover
-            style={{
-              backgroundColor: isError ? 'red' : '',
-              color: isError ? 'white' : '',
-              fontWeight: isError ? 'bold' : '',
-            }}
-          >
+          <Table striped bordered hover>
             <thead>
               <tr>
                 <th>#</th>
                 <th>DNI</th>
+                <th>Apellido</th>
+                <th>Nombre</th>
                 <th>Respuesta</th>
                 <th>Existe</th>
                 <th>Acción</th>
@@ -164,36 +127,16 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo,
                   <tr key={index}>
                     <td>{index + 1}</td>
                     <td>{req.dni}</td>
+                    <td>{req.apellido}</td>
+                    <td>{req.nombre}</td>
                     <td>
-                      {isValid
-                        ? 'Usuario encontrado'
-                        : response.error || 'No encontrado'}
+                      {isValid ? 'Usuario encontrado' : response.error || 'No encontrado'}
                     </td>
-                    <td
-                      style={{
-                        backgroundColor: isValid ? 'green' : '',
-                        color: 'white',
-                        fontWeight: 'bold',
-                      }}
-                    >
+                    <td style={{ backgroundColor: isValid ? 'green' : '', color: 'white' }}>
                       {isValid ? 'Sí' : 'No'}
                     </td>
-                    <td
-                      style={{
-                        backgroundColor: isLogSuccess
-                          ? 'green'
-                          : isLogError
-                          ? 'red'
-                          : '',
-                        color: 'white',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {isLogSuccess
-                        ? 'Ingresa'
-                        : isLogError
-                        ? logMessage || 'Error al registrar acción'
-                        : ''}
+                    <td style={{ backgroundColor: isLogSuccess ? 'green' : isLogError ? 'red' : '', color: 'white' }}>
+                      {isLogSuccess ? 'Ingresa' : isLogError ? logMessage || 'Error al registrar acción' : ''}
                     </td>
                   </tr>
                 );
