@@ -159,16 +159,18 @@ app.get('/api/event/:eventId/users', (req, res) => {
                 WHERE logs.id_usuario = usuario.id_usuario 
                 ORDER BY logs.fecha DESC LIMIT 1) AS last_log,
                -- Calcular la cantidad de ingresos
-               (SELECT COUNT(*) 
-                FROM logs 
-                WHERE logs.id_usuario = usuario.id_usuario AND logs.estado = 1) AS cantidad_ingresos
+               COUNT(CASE WHEN logs.estado = 1 THEN 1 END) AS cantidad_ingresos
         FROM usuario
         JOIN usuario_evento ON usuario.id_usuario = usuario_evento.id_usuario
         JOIN usuario_rol ON usuario_rol.id_usuario = usuario_evento.id_usuario
         JOIN rol ON usuario_rol.id_rol = rol.id_rol
-        WHERE usuario_evento.id_evento = ?`;
+        LEFT JOIN logs ON logs.id_usuario = usuario.id_usuario 
+                      AND logs.id_evento = ?
+        WHERE usuario_evento.id_evento = ?
+        GROUP BY usuario.id_usuario, usuario.nombre, usuario.DNI, rol.nombre, rol.color
+    `;
 
-    db.query(query, [eventId], (err, results) => {
+    db.query(query, [eventId, eventId], (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Error en la base de datos' });
         }
@@ -176,6 +178,7 @@ app.get('/api/event/:eventId/users', (req, res) => {
         res.json(results);
     });
 });
+
 
 // Registrar acceso en logs
 app.post('/api/log/:eventId', (req, res) => {
@@ -263,7 +266,6 @@ app.get('/api/events/:eventId/logs', (req, res) => {
         JOIN usuario_rol ON usuario.id_usuario = usuario_rol.id_usuario
         JOIN rol ON usuario_rol.id_rol = rol.id_rol
         WHERE logs.id_evento = ?
-        ORDER BY fecha DESC
     `;
 
     // Crear filtros dinámicos
@@ -289,6 +291,8 @@ app.get('/api/events/:eventId/logs', (req, res) => {
         queryParams.push(`%${rol}%`);
     }
 
+    query += ' ORDER BY logs.fecha DESC';
+
     // Ejecutar la consulta con los parámetros dinámicos
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -296,7 +300,14 @@ app.get('/api/events/:eventId/logs', (req, res) => {
             return res.status(500).json({ message: 'Error al obtener logs' });
         }
 
-        res.json(results);
+        // Enviar los resultados sin duplicados
+        const uniqueResults = results.filter((value, index, self) =>
+            index === self.findIndex((t) => (
+                t.id_logs === value.id_logs
+            ))
+        );
+
+        res.json(uniqueResults);
     });
 });
 
@@ -316,6 +327,108 @@ app.get('/api/roles', (req, res) => {
     });
 });
 
+
+
+//ADMIN **********************************************************************
+
+
+// Obtener todos los usuarios
+app.get('/api/users', (req, res) => {
+    const query = 'SELECT * FROM usuario';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error al obtener usuarios:', err);
+            return res.status(500).json({ error: 'Error en el servidor' });
+        }
+        res.json(results);
+    });
+});
+
+
+// Agregar Usuario
+app.post('/api/users', (req, res) => {
+    const { dni, apellido, nombre, rol, eventoId } = req.body;
+
+    if (!dni || !nombre || !rol || !eventoId) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    }
+
+    // Iniciar la transacción
+    const queryUser = 'INSERT INTO usuario (DNI, nombre) VALUES (?, ?)';
+    const queryRole = 'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES (?, ?)';
+    const queryEvent = 'INSERT INTO usuario_evento (id_usuario, id_evento) VALUES (?, ?)';
+
+    db.beginTransaction((err) => {
+        if (err) {
+            console.error('Error al iniciar la transacción:', err);
+            return res.status(500).json({ error: 'Error en el servidor' });
+        }
+
+        // Insertar el usuario
+        db.query(queryUser, [dni, nombre, apellido], (err, userResult) => {
+            if (err) {
+                return db.rollback(() => {
+                    console.error('Error al insertar el usuario:', err);
+                    res.status(500).json({ error: 'Error en el servidor' });
+                });
+            }
+
+            const userId = userResult.insertId;
+
+            // Insertar el rol
+            db.query(queryRole, [userId, rol], (err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        console.error('Error al insertar el rol:', err);
+                        res.status(500).json({ error: 'Error en el servidor' });
+                    });
+                }
+
+                // Insertar el evento
+                db.query(queryEvent, [userId, eventoId], (err) => {
+                    if (err) {
+                        return db.rollback(() => {
+                            console.error('Error al insertar el evento:', err);
+                            res.status(500).json({ error: 'Error en el servidor' });
+                        });
+                    }
+
+                    // Confirmar la transacción
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                console.error('Error al confirmar la transacción:', err);
+                                res.status(500).json({ error: 'Error en el servidor' });
+                            });
+                        }
+
+                        res.json({ message: 'Usuario, rol y evento agregados exitosamente' });
+                    });
+                });
+            });
+        });
+    });
+});
+
+
+// Eliminar usuario
+app.delete('/api/users/:id', (req, res) => {
+    const { id } = req.params;
+
+    const query = 'DELETE FROM usuario WHERE id_usuario = ?';
+    db.query(query, [id], (err, result) => {
+        if (err) {
+            console.error('Error al eliminar usuario:', err);
+            return res.status(500).json({ error: 'Error en el servidor' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json({ message: 'Usuario eliminado correctamente' });
+    });
+});
 
 
 // Configuración para producción
