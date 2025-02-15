@@ -16,7 +16,7 @@ const Users = ({ eventId, refreshUsers }) => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(`http://localhost:5000/api/event/${eventId}/users`);
+        const response = await axios.get(`https://eventback-f6aiwsqjia-uc.a.run.app/api/event/${eventId}/users`);
         setUsers(response.data);
         setFilteredUsers(response.data);
       } catch (error) {
@@ -50,7 +50,7 @@ const Users = ({ eventId, refreshUsers }) => {
 
   // Función para manejar la entrada/salida
   const handleLog = (userId, estado) => {
-    axios.post(`http://localhost:5000/api/log/${eventId}`, { userId, estado })
+    axios.post(`https://eventback-f6aiwsqjia-uc.a.run.app/api/log/${eventId}`, { userId, estado })
       .then(response => {
         if (response.data) {
           setSuccessMessage(response.data.message); // Mensaje de éxito

@@ -13,7 +13,7 @@ function ScannerCamera({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo
   useEffect(() => {
     const fetchEventName = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/events/${eventId}`);
+        const response = await axios.get(`https://eventback-f6aiwsqjia-uc.a.run.app/api/events/${eventId}`);
         setEventName(response.data.nombre);
       } catch (error) {
         setErrorMessage('Error al obtener el nombre del evento.');
@@ -58,7 +58,7 @@ function ScannerCamera({ eventId, isEntry, handleToggleEntryExit, setDecodedInfo
         if (!parsedData.numDocumento) return;
 
         try {
-          const validateResponse = await axios.post(`/api/validate/${eventId}`, { dni: parsedData.numDocumento });
+          const validateResponse = await axios.post(`https://eventback-f6aiwsqjia-uc.a.run.app/api/validate/${eventId}`, { dni: parsedData.numDocumento });
 
           if (validateResponse.data.match) {
             setUserInfo({

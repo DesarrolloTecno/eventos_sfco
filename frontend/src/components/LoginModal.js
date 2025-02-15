@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
 import { Modal, Form, Button, Alert } from 'react-bootstrap';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Asegúrate de tener los estilos de bootstrap cargados
+import 'bootstrap/dist/css/bootstrap.min.css'; // Asegï¿½rate de tener los estilos de bootstrap cargados
 
 function LoginModal({ isOpen, closeModal, onLoginSuccess }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    // Si el modal no está abierto, no se renderiza
+    // Si el modal no estï¿½ abierto, no se renderiza
     if (!isOpen) return null;
 
-    // Manejar el envío del formulario
+    // Manejar el envï¿½o del formulario
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Llamada a la API de inicio de sesión
+        // Llamada a la API de inicio de sesiï¿½n
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch('https://eventback-f6aiwsqjia-uc.a.run.app/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -25,7 +25,7 @@ function LoginModal({ isOpen, closeModal, onLoginSuccess }) {
             const data = await response.json();
 
             if (response.ok) {
-                // Manejar inicio de sesión exitoso
+                // Manejar inicio de sesiï¿½n exitoso
                 console.log('Login exitoso', data);
                 onLoginSuccess(data.user); // Pasa los datos del usuario al contexto
                 closeModal(); // Cerramos el modal
@@ -34,11 +34,11 @@ function LoginModal({ isOpen, closeModal, onLoginSuccess }) {
                 setError(''); // Limpiar posibles errores
             } else {
                 // Mostrar error
-                setError(data.message || 'Hubo un error en el inicio de sesión');
+                setError(data.message || 'Hubo un error en el inicio de sesiï¿½n');
             }
         } catch (err) {
             console.error('Error en la solicitud:', err);
-            setError('Error en la conexión');
+            setError('Error en la conexiï¿½n');
         }
     };
 
@@ -46,7 +46,7 @@ function LoginModal({ isOpen, closeModal, onLoginSuccess }) {
     const handleCloseModal = () => {
         closeModal();
         setEmail(''); // Limpiar el email
-        setPassword(''); // Limpiar la contraseña
+        setPassword(''); // Limpiar la contraseï¿½a
         setError(''); // Limpiar el error
     };
 

@@ -12,7 +12,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
 
   const validateDNI = async (dni, apellido, nombre) => {
     try {
-      const validateResponse = await axios.post(`http://localhost:5000/api/validate/${eventId}`, { dni });
+      const validateResponse = await axios.post(`hhttps://eventback-f6aiwsqjia-uc.a.run.app/api/validate/${eventId}`, { dni });
       const responseData = validateResponse.data;
 
       let logResponse = null;
@@ -74,7 +74,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
 
   const sendLogRequest = async (eventId, userId, estado) => {
     try {
-      return await axios.post(`http://localhost:5000/api/log/${eventId}`, { userId, estado });
+      return await axios.post(`https://eventback-f6aiwsqjia-uc.a.run.app//api/log/${eventId}`, { userId, estado });
     } catch (error) {
       return error.response;
     }

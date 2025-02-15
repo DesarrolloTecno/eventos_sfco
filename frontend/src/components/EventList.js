@@ -11,7 +11,7 @@ function EventList() {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/events');
+                const response = await axios.get('https://eventback-f6aiwsqjia-uc.a.run.app/api/events');
                 setEvents(response.data);
             } catch (err) {
                 console.error('Error fetching events:', err);

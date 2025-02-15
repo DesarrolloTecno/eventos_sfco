@@ -40,7 +40,7 @@ const Logs = ({ eventId }) => {
 
         const queryString = queryParams.length ? `?${queryParams.join('&')}` : '';
 
-        axios.get(`http://localhost:5000/api/events/${eventId}/logs${queryString}`)
+        axios.get(`https://eventback-f6aiwsqjia-uc.a.run.app/api/events/${eventId}/logs${queryString}`)
             .then(response => {
                 if (response.data.length === 0) {
                     setError('No se encontraron registros con los filtros aplicados.');
@@ -62,7 +62,7 @@ const Logs = ({ eventId }) => {
     };
 
     const fetchAllRoles = () => {
-        axios.get(`http://localhost:5000/api/roles`)  // Asegúrate de tener un endpoint para obtener todos los roles
+        axios.get(`https://eventback-f6aiwsqjia-uc.a.run.app/api/roles`)  // Asegúrate de tener un endpoint para obtener todos los roles
             .then(response => {
                 setAllRoles(response.data);
                 setRoles(response.data); // Al principio, mostramos todos los roles
