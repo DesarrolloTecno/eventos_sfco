@@ -21,10 +21,12 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
       if (responseData.match) {
         const user = responseData.user;
 
-        const estado = isEntry ? 1 : 0; // Aquí aseguramos que cuando el checkbox está desmarcado, envía 0.
+        const estado = isEntry ? 1 : 0;
 
         logResponse = await sendLogRequest(eventId, user.id_usuario, estado);
         logMessage = logResponse?.data?.message || '';
+      } else {
+        logMessage = 'DNI no registrado';
       }
 
       setRequests(prevRequests => [
@@ -34,9 +36,20 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
 
       setInputData('');
     } catch (error) {
+      console.error('Error en la validación:', error);
+
+      // Si el backend devuelve un error 404, consideramos que el DNI no está registrado
+      const isNotFound = error.response?.status === 404;
+
       setRequests(prevRequests => [
         ...prevRequests,
-        { dni, apellido, nombre, response: { error: 'Error al conectar con el servidor.' } }
+        {
+          dni,
+          apellido,
+          nombre,
+          response: { error: isNotFound ? 'DNI no registrado' : 'Error al conectar con el servidor.' },
+          logMessage: isNotFound ? 'No puede ingresar' : ''
+        }
       ]);
 
       setInputData('');
@@ -63,12 +76,18 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
   };
 
   const parseData = (dataString) => {
-    const dataArray = dataString.split('@');
+    const dataArray = dataString.split('"');
+
+    // Asegúrate de que haya suficientes elementos para extraer la información
+    if (dataArray.length < 6) {
+      throw new Error('El formato de los datos es incorrecto');
+    }
+
     return {
-      dni: dataArray[0],
-      apellido: dataArray[1],
-      nombre: dataArray[2],
-      numDocumento: dataArray[4],
+      dni: dataArray[0], // El DNI es el primer campo
+      apellido: dataArray[1], // El apellido es el segundo campo
+      nombre: dataArray[2], // El nombre es el tercer campo
+      numDocumento: dataArray[4], // El número de documento es el quinto campo
     };
   };
 
@@ -136,7 +155,7 @@ function ScannerInput({ eventId, isEntry, handleToggleEntryExit }) {
                       {isValid ? 'Sí' : 'No'}
                     </td>
                     <td style={{ backgroundColor: isLogSuccess ? 'green' : isLogError ? 'red' : '', color: 'white' }}>
-                      {isLogSuccess ? 'Ingresa' : isLogError ? logMessage || 'Error al registrar acción' : ''}
+                      {isLogSuccess ? 'Habilitado' : isLogError ? logMessage || 'Error al registrar acción' : ''}
                     </td>
                   </tr>
                 );
